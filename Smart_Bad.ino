@@ -17,14 +17,19 @@ Tempsensor  Pin
 #include <TimeLib.h>
 #include <SimpleDHT.h>
 
+///////////////////////////////////////////////////////////////////////////Settings/////////////////////////////////////////////
 const int Relay_1 = 17;
-const char* Code_Version = "V0.01";
-////////////////////////////////////////////////////////////////////////////// Variabeln//////////////////////////////////////////
+const char* Code_Version = "SmartBad_V0.01";
+
 // Update these with values suitable for your network.
 const char* ssid = "Turner.Netz";
 const char* password = "3333333333333";
-const char* mqttBrokerIP = "192.168.1.115";
+const char* mqttBrokerIP = "openhabianpi";
 const int  mqttBrokerPORT = 1883;
+const char* OTAHostname = "Bad_ESP";
+
+////////////////////////////////////////////////////////////////////////////// Variabeln//////////////////////////////////////////
+
 // Topics
 const char* subTopic = "Haus/EG/WZ/Licht";
 const char* subTopic2 = "Haus/EG/WZ/Licht1";
@@ -161,33 +166,14 @@ void connectWifi()
   Serial.println(WiFi.macAddress());
 }
 
+void arduinoOTA(){
 
-
-/////////////////////////////////////////////////////////////////// Setup    ///////////////////////////////////////////
-/*
- * First function to run.
- */
-void setup() 
-{
-  Serial.begin(115200);
- Serial.println(Code_Version);
- Serial.println("Booting");
-  pinMode(Relay_1, OUTPUT);
-   digitalWrite(Relay_1, LOW); 
-  connectWifi();
-  delay(1000);
-  client.setServer(mqttBrokerIP, mqttBrokerPORT);
-  client.setCallback(callback);
-  
-  if(client.connected()) {
-    Serial.println("MQTT: Connected");
-  }
 //////////////////Arduino OTA//////////////////////////////////////////
  // Port defaults to 3232
   // ArduinoOTA.setPort(3232);
 
   // Hostname defaults to esp3232-[MAC]
-  // ArduinoOTA.setHostname("myesp32");
+  ArduinoOTA.setHostname(OTAHostname);
 
   // No authentication by default
   // ArduinoOTA.setPassword("admin");
@@ -223,8 +209,31 @@ ArduinoOTA
   ArduinoOTA.begin();
 
   Serial.println("OTA Ready");
-  Serial.print("IP address: ");
-  Serial.println(WiFi.localIP());
+  
+}
+
+/////////////////////////////////////////////////////////////////// Setup    ///////////////////////////////////////////
+/*
+ * First function to run.
+ */
+void setup() 
+{
+  Serial.begin(115200);
+ Serial.println(Code_Version);
+ Serial.println("Booting");
+ 
+  pinMode(Relay_1, OUTPUT);
+   digitalWrite(Relay_1, LOW); 
+  connectWifi();
+  arduinoOTA();
+  delay(1000);
+  client.setServer(mqttBrokerIP, mqttBrokerPORT);
+  client.setCallback(callback);
+  
+  if(client.connected()) {
+    Serial.println("MQTT: Connected");
+  }
+  
 }
 
 
