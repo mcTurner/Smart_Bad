@@ -51,28 +51,8 @@ const int pinDHT11 = 5;
 SimpleDHT11 dht11(pinDHT11);
 WiFiClient wifiClient;
 PubSubClient client(wifiClient);
+
 ///////////////////////////////////////////////////////////////////////////Funktionen/////////////////////////////////////////////////////
-void connectWifi() 
-{
-  delay(200);
-  Serial.print("Connecting to ");
-  Serial.println(ssid);
-  WiFi.mode(WIFI_STA);
-  WiFi.begin(ssid, password);
-
-  while(WiFi.status() != WL_CONNECTED) {
-    delay(150);
-    Serial.print(".");
-  }
-  
-  Serial.println();
-  Serial.println("WiFi: Connected");
-  Serial.print("IP address: ");
-  Serial.println(WiFi.localIP());
-  Serial.print("MAC address: ");
-  Serial.println(WiFi.macAddress());
-}
-
 void readtemp() {
   Serial.println("Sample DHT11...");
   dht11.read(&temperature, &humidity, NULL);
@@ -157,6 +137,27 @@ void reconnect()
   }
 }
 
+///////////////////////////////////////////////////////////////////////////Wifi Setup/////////////////////////////////////////////////////
+void connectWifi() 
+{
+  delay(200);
+  Serial.print("Connecting to ");
+  Serial.println(ssid);
+  WiFi.mode(WIFI_STA);
+  WiFi.begin(ssid, password);
+
+  while(WiFi.status() != WL_CONNECTED) {
+    delay(150);
+    Serial.print(".");
+  }
+  
+  Serial.println();
+  Serial.println("WiFi: Connected");
+  Serial.print("IP address: ");
+  Serial.println(WiFi.localIP());
+  Serial.print("MAC address: ");
+  Serial.println(WiFi.macAddress());
+}
 /////////////////////////////////////////////////////////////////// Setup    ///////////////////////////////////////////
 /*
  * First function to run.
