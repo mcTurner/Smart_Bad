@@ -1,3 +1,14 @@
+/* 
+Smart_Bad Projekt Version 0.01
+
+Pinbelegung:
+
+Relai       Pin
+Tempsensor  Pin
+
+
+*/
+
 #include <WiFi.h>
 #include <PubSubClient.h>
 #include <TimeLib.h>
@@ -5,7 +16,7 @@
 
 const int Relay_1 = 17;
 
-
+////////////////////////////////////////////////////////////////////////////// Variabeln//////////////////////////////////////////
 // Update these with values suitable for your network.
 const char* ssid = "Turner.Netz";
 const char* password = "3333333333333";
@@ -22,8 +33,11 @@ const char* pubTopic3 = "Haus/EG/WZ/Licht3";
 
 //Timing
 long lastMsg = 0;
-char msg[50];
+
 int value = 0;
+long last_readtemp_time = 0;
+// message
+char msg[50];
 //Tempsensor Var
 long readtemp_delay = 60000;
 long last_readtemp_time = 0;
@@ -32,13 +46,12 @@ byte  Hum = 0;
 byte temperature = 0;
 byte humidity = 0;
 const int pinDHT11 = 5;
+///////////////////////////////////////////////////////////////////////////Objekte/Klassen///////////////////////////////////////////////
+
 SimpleDHT11 dht11(pinDHT11);
-
-
-
 WiFiClient wifiClient;
 PubSubClient client(wifiClient);
-
+///////////////////////////////////////////////////////////////////////////Funktionen/////////////////////////////////////////////////////
 void connectWifi() 
 {
   delay(200);
@@ -60,6 +73,13 @@ void connectWifi()
   Serial.println(WiFi.macAddress());
 }
 
+void readtemp() {
+  Serial.println("Sample DHT11...");
+  dht11.read(&temperature, &humidity, NULL);
+
+}
+
+///////////////////////////////////////////////////////////////////////////MQTT Callback///////////////
 void callback(char* topic, byte* payload, unsigned int length) 
 {
 
@@ -101,14 +121,6 @@ void callback(char* topic, byte* payload, unsigned int length)
 }
 
 
-
-void readtemp() {
-  Serial.println("Sample DHT11...");
-  dht11.read(&temperature, &humidity, NULL);
-
-}
-
-
 /**
  * This function is called when the loop methond sees there is no
  * MQTT connection.  This function attempts to reconnect.  If it can 
@@ -145,7 +157,7 @@ void reconnect()
   }
 }
 
-
+/////////////////////////////////////////////////////////////////// Setup    ///////////////////////////////////////////
 /*
  * First function to run.
  */
@@ -165,7 +177,7 @@ void setup()
   }
 }
 
-
+/////////////////////////////////////////////////////////////////// Loop    ///////////////////////////////////////////
 
 /**
  * This function is called repeatedly.  It calls the client's loop function (required)
@@ -178,21 +190,6 @@ void loop()
   }
   client.loop();
   long now;
-  /*
- ////////////////// activate hello world message
-   long now = millis();
-  
- 
-  if (now - lastMsg > 5000) {
-    lastMsg = now;
-    ++value;
-    snprintf (msg, 75, "hello world FROM Test ESP32 Message#%ld", value);
-    Serial.print("Publish message: ");
-    Serial.println(msg);
-    client.publish("outTopic", msg);
-  }
-
-  */
   now = millis();
   if (now - last_readtemp_time > readtemp_delay){
     //Serial.println(now - last_readtemp_time);
@@ -203,5 +200,4 @@ void loop()
     snprintf (msg, 75, "%d", humidity);
     client.publish("WZ/Sensor/Hum", msg);
     }
-
 }
