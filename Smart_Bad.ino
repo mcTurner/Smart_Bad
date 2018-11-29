@@ -16,9 +16,11 @@ Tempsensor  Pin
 #include <PubSubClient.h>
 #include <TimeLib.h>
 #include <SimpleDHT.h>
+#include "T_Objects.h"
 
 ///////////////////////////////////////////////////////////////////////////Settings/////////////////////////////////////////////
-const int Relay_1 = 17;
+const int Relay_1 = 18;
+const int pinDHT11 = 25;
 const char* Code_Version = "SmartBad_V0.01";
 
 // Update these with values suitable for your network.
@@ -35,7 +37,8 @@ const char* subTopic = "Haus/EG/WZ/Licht";
 const char* subTopic2 = "Haus/EG/WZ/Licht1";
 const char* subTopic3 = "Haus/EG/WZ/Licht3";
 
-const char* pubTopic = "Haus/EG/WZ/Sensor/Temp";
+const char* pubTopic0 = "Haus/EG/WZ/Sensor/Temp";
+const char* pubTopic1 = "Haus/EG/WZ/Sensor/Hum";
 const char* pubTopic2 = "Haus/EG/WZ/Licht1";
 const char* pubTopic3 = "Haus/EG/WZ/Licht3";
 
@@ -52,13 +55,13 @@ byte  Temp = 0;
 byte  Hum = 0;
 byte temperature = 0;
 byte humidity = 0;
-const int pinDHT11 = 5;
+
 ///////////////////////////////////////////////////////////////////////////Objekte/Klassen///////////////////////////////////////////////
 
 SimpleDHT11 dht11(pinDHT11);
 WiFiClient wifiClient;
 PubSubClient client(wifiClient);
-
+Heizobjekt Badheizer(5,20);
 ///////////////////////////////////////////////////////////////////////////Funktionen/////////////////////////////////////////////////////
 void readtemp() {
   Serial.println("Sample DHT11...");
