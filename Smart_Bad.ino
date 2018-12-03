@@ -19,7 +19,8 @@ Tempsensor  Pin
 #include "T_Objects.h"
 
 ///////////////////////////////////////////////////////////////////////////Settings/////////////////////////////////////////////
-const int Relay_1 = 18;
+const int Relai_1 = 5;
+const int Relai_2 = 18;
 const int pinDHT11 = 25;
 const char* Code_Version = "SmartBad_V0.01";
 
@@ -33,8 +34,8 @@ const char* OTAHostname = "Bad_ESP";
 ////////////////////////////////////////////////////////////////////////////// Variabeln//////////////////////////////////////////
 
 // Topics
-const char* subTopic = "Haus/EG/WZ/Licht";
-const char* subTopic2 = "Haus/EG/WZ/Licht1";
+const char* subTopic1 = "Haus/EG/WZ/Licht";
+const char* subTopic2 = "Haus/EG/Bad/Heizer";
 const char* subTopic3 = "Haus/EG/WZ/Licht3";
 
 const char* pubTopic0 = "Haus/EG/WZ/Sensor/Temp";
@@ -61,7 +62,7 @@ byte humidity = 0;
 SimpleDHT11 dht11(pinDHT11);
 WiFiClient wifiClient;
 PubSubClient client(wifiClient);
-Heizobjekt Badheizer(5,20);
+Heizobjekt Badheizer(Relai_2,20);
 ///////////////////////////////////////////////////////////////////////////Funktionen/////////////////////////////////////////////////////
 void readtemp() {
   Serial.println("Sample DHT11...");
@@ -80,24 +81,26 @@ void callback(char* topic, byte* payload, unsigned int length)
     i++;
   } //parses topic from bytes
 
-  if (callTopic.equals(subTopic)) {
-    Serial.println("Topic match");
+  if (callTopic.equals(subTopic1)) {
+    Serial.println("Topic match subTopic1");
     Serial.println((char)payload[0]);
     if((char)payload[0] == '1') {
-      digitalWrite(Relay_1, HIGH);   // turn the LED on (HIGH is the voltage level)
-      Serial.println("High");  
+      
+      digitalWrite(Relai_1, LOW);   // turn the LED on (HIGH is the voltage level)
+      Serial.println("Relai_1 LOW");  
   
     } else if ((char)payload[0] == '0'){
-      digitalWrite(Relay_1, LOW);    // turn the LED off by making the voltage LOW
-      Serial.println("Low");  
+      digitalWrite(Relai_1, HIGH);    // turn the LED off by making the voltage LOW
+      Serial.println("Relai_1 HIGH");  
     }    
   }
 
   if (callTopic.equals(subTopic2)) {
+    Serial.println("Topic match subTopic2");
     if((char)payload[0] == '0') {
-      //outletOff(1);
+      Badheizer.power_off();//outletOff(1);
     } else if ((char)payload[0] == '1'){
-     //outletOn(1);
+      Badheizer.power_on();
     }    
   }
 
@@ -127,8 +130,8 @@ void reconnect()
       client.setServer(mqttBrokerIP, mqttBrokerPORT);
       client.setCallback(callback);
   
-      client.subscribe(subTopic);
-      //client.subscribe(subTopic2);
+      client.subscribe(subTopic1);
+      client.subscribe(subTopic2);
       //client.subscribe(subTopic3);
       
     } else {
@@ -225,8 +228,10 @@ void setup()
  Serial.println(Code_Version);
  Serial.println("Booting");
  
-  pinMode(Relay_1, OUTPUT);
-   digitalWrite(Relay_1, LOW); 
+  pinMode(Relai_1, OUTPUT);
+  pinMode(Relai_2, OUTPUT);
+  digitalWrite(Relai_1, HIGH); 
+  digitalWrite(Relai_2, HIGH);
   connectWifi();
   arduinoOTA();
   delay(1000);
