@@ -1,17 +1,18 @@
 /* 
-Smart_Bad Projekt Version 0.01
+"SmartBad_ESP8266_V0.01"
 
 Pinbelegung:
 
-Relai       Pin
-Tempsensor  Pin
+Relai       Pin 0
+Tempsensor  Pin 2
 
+Funktion: veröffentlicht Temperatur &Luftfeuchtigkeit über mqtt, schaltet heizung AN/AUS
+kommende funktion: emfängt soll temperatur in °C
 
 */
 
-//#include <WiFi.h>
 #include <ESP8266WiFi.h>
-//#include <ESPmDNS.h>
+#include <ESP8266mDNS.h>
 #include <WiFiUdp.h>
 #include <ArduinoOTA.h>
 #include <PubSubClient.h>
@@ -20,39 +21,42 @@ Tempsensor  Pin
 #include "T_Objects.h"
 
 ///////////////////////////////////////////////////////////////////////////Settings/////////////////////////////////////////////
-const int Relai_1 = 5;
-const int Relai_2 = 18;
-const int pinDHT11 = 25;
-const char* Code_Version = "SmartBad_V0.01";
+const int Heizkontakt_HP = 0;
+const int Relai_2 = 25;
+const int pinDHT11 = 02;
+const char* Code_Version = "SmartBad_ESP8266_V0.01";
 
 // Update these with values suitable for your network.
 const char* ssid = "Turner.Netz";
 const char* password = "3333333333333";
 const char* mqttBrokerIP = "openhabianpi";
 const int  mqttBrokerPORT = 1883;
-const char* OTAHostname = "Bad_ESP";
+const char* OTAHostname = "Bad_ESP_8266_1";
+
+long BadheizerHandle_delay = 10000;
+long readtemp_delay = 60000;
 
 ////////////////////////////////////////////////////////////////////////////// Variabeln//////////////////////////////////////////
 
 // Topics
-const char* subTopic1 = "Haus/EG/WZ/Licht";
-const char* subTopic2 = "Haus/EG/Bad/Heizer";
-const char* subTopic3 = "Haus/EG/WZ/Licht3";
+const char* subTopic1 = "Haus/EG/Bad/Heizer";
+const char* subTopic2 = "Haus/EG/Bad/TempSoll";
+const char* subTopic3 = "";
 
-const char* pubTopic0 = "Haus/EG/WZ/Sensor/Temp";
-const char* pubTopic1 = "Haus/EG/WZ/Sensor/Hum";
-const char* pubTopic2 = "Haus/EG/WZ/Licht1";
-const char* pubTopic3 = "Haus/EG/WZ/Licht3";
+const char* pubTopic0 = "Haus/EG/Bad/Sensor/Temp";
+const char* pubTopic1 = "Haus/EG/Bad/Sensor/Hum";
+const char* pubTopic2 = "";
+const char* pubTopic3 = "";
 
 //Timing
 long lastMsg = 0;
-
 int value = 0;
 long last_readtemp_time = 0;
+long last_BadheizerHandle_time = 0;
+
 // message
 char msg[50];
 //Tempsensor Var
-long readtemp_delay = 60000;
 byte  Temp = 0;
 byte  Hum = 0;
 byte temperature = 0;
@@ -63,7 +67,7 @@ byte humidity = 0;
 SimpleDHT11 dht11(pinDHT11);
 WiFiClient wifiClient;
 PubSubClient client(wifiClient);
-Heizobjekt Badheizer(Relai_2,20);
+Heizobjekt Badheizer(Heizkontakt_HP,20);
 ///////////////////////////////////////////////////////////////////////////Funktionen/////////////////////////////////////////////////////
 void readtemp() {
   Serial.println("Sample DHT11...");
@@ -87,21 +91,21 @@ void callback(char* topic, byte* payload, unsigned int length)
     Serial.println((char)payload[0]);
     if((char)payload[0] == '1') {
       
-      digitalWrite(Relai_1, LOW);   // turn the LED on (HIGH is the voltage level)
-      Serial.println("Relai_1 LOW");  
+      Badheizer.power_off();
+      Serial.println("Badheizer.power_off()");  
   
     } else if ((char)payload[0] == '0'){
-      digitalWrite(Relai_1, HIGH);    // turn the LED off by making the voltage LOW
-      Serial.println("Relai_1 HIGH");  
+      Badheizer.power_on();
+      Serial.println("Badheizer.power_on()");  
     }    
   }
 
   if (callTopic.equals(subTopic2)) {
     Serial.println("Topic match subTopic2");
     if((char)payload[0] == '0') {
-      Badheizer.power_off();//outletOff(1);
+      //
     } else if ((char)payload[0] == '1'){
-      Badheizer.power_on();
+      //
     }    
   }
 
@@ -175,44 +179,50 @@ void connectWifi()
 
 void arduinoOTA(){
 
-//////////////////Arduino OTA//////////////////////////////////////////
- // Port defaults to 3232
-  // ArduinoOTA.setPort(3232);
+ // Port defaults to 8266
+  // ArduinoOTA.setPort(8266);
 
-  // Hostname defaults to esp3232-[MAC]
-  ArduinoOTA.setHostname(OTAHostname);
+  // Hostname defaults to esp8266-[ChipID]
+  // ArduinoOTA.setHostname("myesp8266");
 
   // No authentication by default
   // ArduinoOTA.setPassword("admin");
 
   // Password can be set with it's md5 value as well
   // MD5(admin) = 21232f297a57a5a743894a0e4a801fc3
-ArduinoOTA
-    .onStart([]() {
-      String type;
-      if (ArduinoOTA.getCommand() == U_FLASH)
-        type = "sketch";
-      else // U_SPIFFS
-        type = "filesystem";
+  // ArduinoOTA.setPasswordHash("21232f297a57a5a743894a0e4a801fc3");
 
-      // NOTE: if updating SPIFFS this would be the place to unmount SPIFFS using SPIFFS.end()
-      Serial.println("Start updating " + type);
-    })
-    .onEnd([]() {
-      Serial.println("\nEnd");
-    })
-    .onProgress([](unsigned int progress, unsigned int total) {
-      Serial.printf("Progress: %u%%\r", (progress / (total / 100)));
-    })
-    .onError([](ota_error_t error) {
-      Serial.printf("Error[%u]: ", error);
-      if (error == OTA_AUTH_ERROR) Serial.println("Auth Failed");
-      else if (error == OTA_BEGIN_ERROR) Serial.println("Begin Failed");
-      else if (error == OTA_CONNECT_ERROR) Serial.println("Connect Failed");
-      else if (error == OTA_RECEIVE_ERROR) Serial.println("Receive Failed");
-      else if (error == OTA_END_ERROR) Serial.println("End Failed");
-    });
+  ArduinoOTA.onStart([]() {
+    String type;
+    if (ArduinoOTA.getCommand() == U_FLASH) {
+      type = "sketch";
+    } else { // U_SPIFFS
+      type = "filesystem";
+    }
 
+    // NOTE: if updating SPIFFS this would be the place to unmount SPIFFS using SPIFFS.end()
+    Serial.println("Start updating " + type);
+  });
+  ArduinoOTA.onEnd([]() {
+    Serial.println("\nEnd");
+  });
+  ArduinoOTA.onProgress([](unsigned int progress, unsigned int total) {
+    Serial.printf("Progress: %u%%\r", (progress / (total / 100)));
+  });
+  ArduinoOTA.onError([](ota_error_t error) {
+    Serial.printf("Error[%u]: ", error);
+    if (error == OTA_AUTH_ERROR) {
+      Serial.println("Auth Failed");
+    } else if (error == OTA_BEGIN_ERROR) {
+      Serial.println("Begin Failed");
+    } else if (error == OTA_CONNECT_ERROR) {
+      Serial.println("Connect Failed");
+    } else if (error == OTA_RECEIVE_ERROR) {
+      Serial.println("Receive Failed");
+    } else if (error == OTA_END_ERROR) {
+      Serial.println("End Failed");
+    }
+  });
   ArduinoOTA.begin();
 
   Serial.println("OTA Ready");
@@ -229,9 +239,9 @@ void setup()
  Serial.println(Code_Version);
  Serial.println("Booting");
  
-  pinMode(Relai_1, OUTPUT);
+  pinMode(Heizkontakt_HP, OUTPUT);
   pinMode(Relai_2, OUTPUT);
-  digitalWrite(Relai_1, HIGH); 
+  digitalWrite(Heizkontakt_HP, HIGH); 
   digitalWrite(Relai_2, HIGH);
   connectWifi();
   arduinoOTA();
@@ -261,14 +271,22 @@ void loop()
   ArduinoOTA.handle();
   client.loop();
   long now;
+  /*
   now = millis();
+  
   if (now - last_readtemp_time > readtemp_delay){
     //Serial.println(now - last_readtemp_time);
     last_readtemp_time = now;
     readtemp();
-    snprintf (msg, 75, "%d", temperature);
+    s0nprintf (msg, 75, "%d", temperature);
     client.publish("WZ/Sensor/Temp", msg);
     snprintf (msg, 75, "%d", humidity);
     client.publish("WZ/Sensor/Hum", msg);
-    }
+    }*/
+   
+   now = millis();
+   if (now - last_BadheizerHandle_time > BadheizerHandle_delay){
+   last_BadheizerHandle_time = now;
+   Badheizer.handle();
+   } 
 }
