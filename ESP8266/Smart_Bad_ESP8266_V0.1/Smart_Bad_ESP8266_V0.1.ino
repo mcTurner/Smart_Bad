@@ -23,13 +23,13 @@ kommende funktion: emfängt soll temperatur in °C
 ///////////////////////////////////////////////////////////////////////////Settings/////////////////////////////////////////////
 const int Heizkontakt_HP = 0;
 const int Relai_2 = 25;
-const int pinDHT11 = 02;
+const int pinDHT11 = 2;
 const char* Code_Version = "SmartBad_ESP8266_V0.01";
 
 // Update these with values suitable for your network.
 const char* ssid = "Turner.Netz";
 const char* password = "3333333333333";
-const char* mqttBrokerIP = "openhabianpi";
+const char* mqttBrokerIP = "192.168.1.111";
 const int  mqttBrokerPORT = 1883;
 const char* OTAHostname = "Bad_ESP_8266_1";
 
@@ -129,7 +129,7 @@ void reconnect()
 {
   while (!client.connected()) {
     Serial.print("Attempting MQTT connection...");
-    if (client.connect("YourDeviceName")) {
+    if (client.connect(OTAHostname)) {
       Serial.println("connected");
 
       client.setServer(mqttBrokerIP, mqttBrokerPORT);
@@ -271,18 +271,18 @@ void loop()
   ArduinoOTA.handle();
   client.loop();
   long now;
-  /*
+  
   now = millis();
   
   if (now - last_readtemp_time > readtemp_delay){
     //Serial.println(now - last_readtemp_time);
     last_readtemp_time = now;
     readtemp();
-    s0nprintf (msg, 75, "%d", temperature);
-    client.publish("WZ/Sensor/Temp", msg);
+    snprintf (msg, 75, "%d", temperature);
+    client.publish(pubTopic0, msg);
     snprintf (msg, 75, "%d", humidity);
-    client.publish("WZ/Sensor/Hum", msg);
-    }*/
+    client.publish(pubTopic1, msg);
+    }
    
    now = millis();
    if (now - last_BadheizerHandle_time > BadheizerHandle_delay){

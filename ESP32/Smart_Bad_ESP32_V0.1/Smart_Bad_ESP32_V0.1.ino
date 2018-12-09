@@ -27,7 +27,7 @@ const char* Code_Version = "SmartBad_V0.01";
 // Update these with values suitable for your network.
 const char* ssid = "Turner.Netz";
 const char* password = "3333333333333";
-const char* mqttBrokerIP = "openhabianpi";
+const char* mqttBrokerIP = "192.168.1.111";
 const int  mqttBrokerPORT = 1883;
 const char* OTAHostname = "Bad_ESP";
 
@@ -35,7 +35,7 @@ const char* OTAHostname = "Bad_ESP";
 
 // Topics
 const char* subTopic1 = "Haus/EG/WZ/Licht";
-const char* subTopic2 = "Haus/EG/Bad/Heizer";
+const char* subTopic2 = "Haus/EG/WZ/POWER_TV";
 const char* subTopic3 = "Haus/EG/WZ/Licht3";
 
 const char* pubTopic0 = "Haus/EG/WZ/Sensor/Temp";
@@ -124,7 +124,7 @@ void reconnect()
 {
   while (!client.connected()) {
     Serial.print("Attempting MQTT connection...");
-    if (client.connect("YourDeviceName")) {
+    if (client.connect("ESP32_Devboard")) {
       Serial.println("connected");
 
       client.setServer(mqttBrokerIP, mqttBrokerPORT);
@@ -266,8 +266,8 @@ void loop()
     last_readtemp_time = now;
     readtemp();
     snprintf (msg, 75, "%d", temperature);
-    client.publish("WZ/Sensor/Temp", msg);
+    client.publish(pubTopic0, msg);
     snprintf (msg, 75, "%d", humidity);
-    client.publish("WZ/Sensor/Hum", msg);
+    client.publish(pubTopic1, msg);
     }
 }
