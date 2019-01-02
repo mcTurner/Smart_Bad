@@ -29,7 +29,7 @@ const char* Code_Version = "SmartBad_ESP8266_V0.01";
 // Update these with values suitable for your network.
 const char* ssid = "Turner.Netz";
 const char* password = "3333333333333";
-const char* mqttBrokerIP = "192.168.1.111";
+const char* mqttBrokerIP = "192.168.1.115";
 const int  mqttBrokerPORT = 1883;
 const char* OTAHostname = "Bad_ESP_8266_1";
 
@@ -72,6 +72,7 @@ Heizobjekt Badheizer(Heizkontakt_HP,20);
 void readtemp() {
   Serial.println("Sample DHT11...");
   dht11.read(&temperature, &humidity, NULL);
+  Badheizer.set_Temp_IST(temperature);
 
 }
 
@@ -80,6 +81,7 @@ void callback(char* topic, byte* payload, unsigned int length)
 {
 
   String callTopic = "";
+  String payload_str_buf = "";
   int i = 0;
   while((char)topic[i] != 0) {
     callTopic += (char)topic[i];
@@ -89,12 +91,11 @@ void callback(char* topic, byte* payload, unsigned int length)
   if (callTopic.equals(subTopic1)) {
     Serial.println("Topic match subTopic1");
     Serial.println((char)payload[0]);
-    if((char)payload[0] == '1') {
-      
-      Badheizer.power_off();
+    if((char)payload[0] == '0') {
+            Badheizer.power_off();
       Serial.println("Badheizer.power_off()");  
   
-    } else if ((char)payload[0] == '0'){
+    } else if ((char)payload[0] == '1'){
       Badheizer.power_on();
       Serial.println("Badheizer.power_on()");  
     }    
@@ -102,11 +103,10 @@ void callback(char* topic, byte* payload, unsigned int length)
 
   if (callTopic.equals(subTopic2)) {
     Serial.println("Topic match subTopic2");
-    if((char)payload[0] == '0') {
-      //
-    } else if ((char)payload[0] == '1'){
-      //
-    }    
+    for (int i = 0; i < length; i++) {
+    payload_str_buf += (char)payload[i];
+    }
+    Badheizer.set_Temp_SOLL(payload_str_buf.toInt());
   }
 
   if (callTopic.equals(subTopic3)) {
@@ -278,6 +278,7 @@ void loop()
     //Serial.println(now - last_readtemp_time);
     last_readtemp_time = now;
     readtemp();
+    Badheizer.set_Temp_IST(temperature);
     snprintf (msg, 75, "%d", temperature);
     client.publish(pubTopic0, msg);
     snprintf (msg, 75, "%d", humidity);
@@ -287,6 +288,7 @@ void loop()
    now = millis();
    if (now - last_BadheizerHandle_time > BadheizerHandle_delay){
    last_BadheizerHandle_time = now;
+   
    Badheizer.handle();
    } 
 }
